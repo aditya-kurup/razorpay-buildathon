@@ -1,0 +1,9 @@
+.env
+.venv/
+__pycache__/
+*.py[cod]
+*.sqlite3
+logs/
+tools/razorpay_test_checkout.html
+notes/*.json
+.DS_Store

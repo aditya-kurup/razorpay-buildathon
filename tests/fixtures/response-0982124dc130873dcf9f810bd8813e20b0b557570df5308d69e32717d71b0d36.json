@@ -1,0 +1,13 @@
+{
+  "response": {
+    "campaign_id": "growth_expansion_2026",
+    "customer_id": "acct-045",
+    "offer_type": "seat_expansion",
+    "option_id": "seat_expansion:pro",
+    "proposed_discount": "0.10",
+    "proposed_seats": 35,
+    "reason": "As your workspace continues to grow and approach current seat limits, we are offering a discount to help you expand your team smoothly on our Pro tier.",
+    "target_addon": "",
+    "target_tier": "pro"
+  }
+}

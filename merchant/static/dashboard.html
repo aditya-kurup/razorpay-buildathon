@@ -1,0 +1,452 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Growth Agent Dashboard</title>
+  <style>
+    :root { color-scheme: dark; --bg:#0c1016; --panel:#121923; --panel2:#182331; --line:#2a394b; --text:#d9e2ec; --muted:#8b9aab; --accent:#58b6ff; --ok:#5bd39a; --bad:#ff6f75; --warn:#ffc45c; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--bg); color:var(--text); font:13px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace; overflow:hidden; }
+    button { font:inherit; color:var(--text); background:#1b2a3a; border:1px solid var(--line); border-radius:4px; padding:7px 10px; cursor:pointer; }
+    button:hover:not(:disabled) { border-color:var(--accent); color:#fff; }
+    button:disabled { cursor:not-allowed; opacity:.42; }
+    .app { height:100vh; display:grid; grid-template-columns:280px minmax(380px,1fr) 340px 360px; gap:1px; background:var(--line); }
+    .column { min-width:0; background:var(--bg); display:flex; flex-direction:column; overflow:hidden; }
+    header { padding:16px; border-bottom:1px solid var(--line); background:var(--panel); }
+    h1,h2,h3,p { margin:0; } h1 { font-size:16px; } h2 { font-size:13px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); }
+    .metrics { display:flex; gap:8px; margin-top:12px; } .metric { flex:1; background:var(--panel2); border:1px solid var(--line); padding:8px; } .metric b { display:block; font-size:18px; color:#fff; }
+    .scroll { overflow:auto; flex:1; padding:10px; }
+    .account { border:1px solid var(--line); background:var(--panel); padding:10px; margin-bottom:8px; cursor:pointer; } .account.selected { border-color:var(--accent); }
+    .row { display:flex; align-items:center; justify-content:space-between; gap:8px; } .muted { color:var(--muted); } .mono { font-family:inherit; }
+    .badge { display:inline-block; padding:2px 5px; border:1px solid var(--line); border-radius:3px; font-size:10px; margin:3px 3px 0 0; } .badge.hostile { color:var(--bad); border-color:var(--bad); } .badge.trigger { color:var(--warn); border-color:var(--warn); }
+    .bar { height:5px; background:#273342; margin:7px 0; } .bar i { display:block; height:100%; background:var(--accent); }
+    .account button { width:100%; margin-top:7px; }
+    .toolbar { display:flex; gap:8px; margin-top:12px; } .toolbar button { flex:1; }
+    .pipeline-head { display:flex; justify-content:space-between; align-items:center; gap:8px; }
+    .status { color:var(--muted); } .status.ok { color:var(--ok); } .status.bad { color:var(--bad); } .status.warn { color:var(--warn); }
+    .timeline { padding:16px; overflow:auto; flex:1; }
+    .run-block { border:1px solid var(--line); background:var(--panel); padding:12px; margin-bottom:14px; scroll-margin-top:12px; }
+    .run-divider { border-top:1px solid var(--line); margin:-2px 0 12px; padding-top:8px; color:var(--muted); font-size:11px; }
+    .cohort-block { border:1px solid var(--line); margin-top:10px; background:#101821; }
+    .cohort-block > summary, .member-block > summary { cursor:pointer; padding:9px 10px; color:var(--text); }
+    .cohort-block > summary { background:var(--panel2); }
+    .cohort-body { padding:0 10px 10px; }
+    .member-block { border-top:1px solid var(--line); margin-top:8px; background:var(--panel); }
+    .member-body { padding:0 10px 10px; }
+    .step { border-left:2px solid var(--line); padding:0 0 18px 18px; margin-left:8px; position:relative; } .step:before { content:""; position:absolute; left:-7px; top:0; width:10px; height:10px; border-radius:50%; background:var(--line); } .step.active:before { background:var(--accent); box-shadow:0 0 12px var(--accent); } .step.complete:before { background:var(--ok); } .step.failed:before { background:var(--bad); }
+    .step h3 { font-size:12px; margin-bottom:6px; } .card { border:1px solid var(--line); background:var(--panel); padding:10px; margin-top:8px; } pre { white-space:pre-wrap; overflow:auto; max-height:260px; margin:0; color:#c8d6e5; }
+    .rules { display:flex; flex-wrap:wrap; gap:5px; } .rule { border:1px solid var(--ok); color:var(--ok); padding:3px 5px; font-size:11px; } .rule.fail { border-color:var(--bad); color:var(--bad); }
+    .budget { margin-top:10px; } .budget .bar { height:8px; } .budget i { background:var(--warn); }
+    .audit-item { padding:9px 0; border-bottom:1px solid var(--line); } .audit-item .event { color:var(--accent); } .audit-item.bad .event { color:var(--bad); } .audit-item.warn .event { color:var(--warn); } .payload { color:var(--muted); margin-top:4px; }
+    .chain { padding:10px 16px; border-top:1px solid var(--line); color:var(--ok); background:var(--panel); } .chain.bad { color:var(--bad); }
+    .empty { padding:40px 20px; color:var(--muted); text-align:center; }
+    .config { color:var(--muted); font-size:11px; margin-top:8px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .offer-item { border:1px solid var(--line); background:var(--panel); padding:10px; margin-bottom:8px; }
+    .offer-id { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:210px; }
+    .offer-price { color:#fff; font-size:14px; margin:7px 0 4px; }
+    .offer-state { font-size:10px; padding:2px 5px; border:1px solid currentColor; border-radius:3px; }
+    .state-reserved { color:var(--ok); } .state-paid { color:var(--accent); } .state-expired { color:var(--muted); } .state-failed { color:var(--bad); } .state-accepted, .state-order_created { color:var(--warn); }
+    .offer-item button { width:100%; margin-top:9px; }
+    .offer-feedback { margin-top:8px; color:var(--muted); font-size:11px; white-space:pre-wrap; overflow-wrap:anywhere; }
+    .offer-feedback.ok { color:var(--ok); } .offer-feedback.bad { color:var(--bad); } .offer-feedback.warn { color:var(--warn); }
+    dialog { background:var(--panel); color:var(--text); border:1px solid var(--line); max-width:680px; width:90%; } dialog::backdrop { background:#000b; }
+    @media (max-width:1400px) and (min-width:1101px) { .app { grid-template-columns:250px minmax(320px,1fr) 310px 320px; } .offer-id { max-width:180px; } }
+    @media (max-width:1100px) { body { overflow:auto; } .app { height:auto; min-height:100vh; grid-template-columns:1fr; } .column { min-height:420px; } }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="column">
+      <header>
+        <div class="row"><h1>Accounts</h1><span id="account-status" class="status">loading</span></div>
+        <div class="metrics"><div class="metric"><span class="muted">total</span><b id="m-total">—</b></div><div class="metric"><span class="muted">triggered</span><b id="m-triggered">—</b></div><div class="metric"><span class="muted">active</span><b id="m-active">—</b></div></div>
+        <div class="toolbar"><button id="campaign-btn">Run campaign</button></div>
+      </header>
+      <div id="accounts" class="scroll"></div>
+    </section>
+
+    <section class="column">
+      <header><div class="pipeline-head"><h1>Pipeline</h1><span id="run-status" class="status">idle</span></div><div id="selected" class="muted" style="margin-top:7px">Select an account</div><div class="toolbar"><button id="clear-timeline">Clear timeline</button></div><div id="budget" class="budget" hidden><div class="row"><span>campaign budget</span><span id="budget-label">₹50,000</span></div><div class="bar"><i id="budget-bar" style="width:0%"></i></div></div></header>
+      <div id="timeline" class="timeline"><div class="empty">Live pipeline events will appear here.</div></div>
+    </section>
+
+    <section class="column">
+      <header><div class="row"><h1>Audit and metrics</h1><button id="tamper-btn">Run tamper demo</button></div><div class="metrics"><div class="metric"><span class="muted">proposals</span><b id="mm-proposals">—</b></div><div class="metric"><span class="muted">approved</span><b id="mm-approved">—</b></div><div class="metric"><span class="muted">paid</span><b id="mm-paid">—</b></div></div></header>
+      <div id="audit" class="scroll"></div><div id="chain" class="chain">hash chain: checking</div>
+    </section>
+
+    <section class="column">
+      <header><div class="row"><h1>Offers</h1><span id="offers-status" class="status">loading</span></div><div id="checkout-config" class="config">Config: loading</div></header>
+      <div id="offers" class="scroll"><div class="empty">Stored offers will appear here.</div></div>
+    </section>
+  </main>
+  <dialog id="tamper-dialog"><h2>Tamper demo</h2><div id="tamper-log" class="card"></div><div style="margin-top:12px;text-align:right"><button onclick="document.getElementById('tamper-dialog').close()">Close</button></div></dialog>
+  <script>
+    const MERCHANT_BASE_URL = window.location.origin;
+    const $ = id => document.getElementById(id);
+    let accounts = [], offers = [], selectedId = null, auditSource = null, auditSeq = 0;
+    let razorpayKeyId = '', razorpayScriptPromise = null;
+    const offerFeedback = new Map(), pendingOffers = new Set();
+    const steps = ['trigger_detection','eligibility_check_started','eligibility_result','prompt_built','model_call_started','model_response','policy_check_started','policy_verdict','offer_stored'];
+    function esc(value) { return String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c])); }
+    function local(ts) { try { const d = new Date(ts); return `<span title="${esc(ts)}">${esc(d.toLocaleString())}</span>`; } catch { return esc(ts); } }
+    function apiUrl(path) { return `${MERCHANT_BASE_URL.replace(/\/$/, '')}${path}`; }
+    function relativeTime(ts) {
+      const elapsed = Math.max(0, Date.now() - new Date(ts).getTime());
+      if (!Number.isFinite(elapsed)) return 'unknown';
+      const seconds = Math.floor(elapsed / 1000);
+      if (seconds < 60) return `${seconds}s ago`;
+      const minutes = Math.floor(seconds / 60);
+      if (minutes < 60) return `${minutes}m ago`;
+      const hours = Math.floor(minutes / 60);
+      if (hours < 24) return `${hours}h ago`;
+      return `${Math.floor(hours / 24)}d ago`;
+    }
+    function compactOfferId(value) {
+      const id = String(value ?? '');
+      return id.length > 28 ? `${id.slice(0, 12)}…${id.slice(-10)}` : id;
+    }
+    function offerStateClass(state) { return `state-${String(state || '').toLowerCase()}`; }
+    function setOfferFeedback(offerId, message, kind='') {
+      offerFeedback.set(offerId, { message, kind });
+      renderOffers();
+    }
+    function renderOffers() {
+      if (!offers.length) {
+        $('offers').innerHTML = '<div class="empty">No stored offers.</div>';
+        return;
+      }
+      $('offers').innerHTML = offers.map(offer => {
+        const state = String(offer.state || '');
+        const feedback = offerFeedback.get(offer.offer_id);
+        const button = state === 'RESERVED'
+          ? `<button ${pendingOffers.has(offer.offer_id) ? 'disabled' : ''} onclick="event.stopPropagation(); acceptAndPay('${esc(offer.offer_id)}')">Simulate customer accept &amp; pay (demo)</button>`
+          : '';
+        return `<article class="offer-item">
+          <div class="row"><b class="offer-id" title="${esc(offer.offer_id)}">${esc(compactOfferId(offer.offer_id))}</b><span class="offer-state ${offerStateClass(state)}">${esc(state)}</span></div>
+          <div class="muted" style="margin-top:5px">${esc(offer.customer_id)} · ${esc(relativeTime(offer.timestamp))}</div>
+          <div class="offer-price">₹${(Number(offer.price_paise || 0) / 100).toFixed(2)}</div>
+          ${button}
+          ${feedback ? `<div class="offer-feedback ${esc(feedback.kind)}">${esc(feedback.message)}</div>` : ''}
+        </article>`;
+      }).join('');
+    }
+    function renderAccounts() {
+      $('m-total').textContent = accounts.length; $('m-triggered').textContent = accounts.filter(a=>a.triggered_upsell).length; $('m-active').textContent = accounts.filter(a=>a.has_active_offer).length;
+      $('accounts').innerHTML = accounts.map(a => { const pct = Math.min(100, Math.round(a.seats_in_use / Math.max(1,a.seats_contracted) * 100)); const disabled = !a.triggered_upsell || a.has_active_offer; const why = a.has_active_offer ? 'customer has an active offer' : !a.triggered_upsell ? 'account is not triggered' : ''; return `<article class="account ${selectedId===a.customer_id?'selected':''}" data-id="${esc(a.customer_id)}"><div class="row"><b>${esc(a.customer_id)}</b><span class="badge">${esc(a.tier)}</span></div><div class="muted">seats ${a.seats_in_use}/${a.seats_contracted}</div><div class="bar"><i style="width:${pct}%"></i></div><div>${a.trigger_types.map(t=>`<span class="badge trigger">${esc(t)}</span>`).join('')}${a.hostile?'<span class="badge hostile">hostile</span>':''}</div><button ${disabled?'disabled':''} title="${esc(why)}" onclick="event.stopPropagation(); runUpsell('${esc(a.customer_id)}')">Run upsell</button></article>`; }).join('');
+      document.querySelectorAll('.account').forEach(el => el.addEventListener('click', () => { selectedId=el.dataset.id; renderAccounts(); $('selected').textContent=selectedId; }));
+    }
+    let activeRun = null;
+    let runSequence = 0;
+    let fieldDiscardSequence = 0;
+
+    function createRun(label, kind, scopeBase=kind) {
+      const runId = `${scopeBase}:${Date.now()}-${++runSequence}`;
+      const block = document.createElement('section');
+      block.className = 'run-block';
+      block.dataset.runId = runId;
+      block.innerHTML = `<div class="run-divider">${esc(label)} · ${local(new Date().toISOString())}</div>`;
+      $('timeline').querySelector('.empty')?.remove();
+      $('timeline').appendChild(block);
+      const run = { id: runId, kind, label, block, root: block, cohorts: new Map(), activeMemberByCohort: new Map(), done: false };
+      activeRun = run;
+      $('run-status').textContent = label;
+      $('run-status').className = 'status active';
+      $('timeline').scrollTo({ top: $('timeline').scrollHeight, behavior: 'smooth' });
+      return run;
+    }
+
+    function addStep(scope, name, state='active', detail='', container=null, keyName=null) {
+      const parent = container || activeRun?.root || $('timeline');
+      const key = `${scope}:${keyName || name}`;
+      const existing = [...parent.querySelectorAll('.step')].find(el => el.dataset.stepKey === key);
+      if (existing) {
+        existing.className = `step ${state}`;
+        if (detail) existing.querySelector('.detail').innerHTML = detail;
+        return existing;
+      }
+      const el = document.createElement('div');
+      el.className = `step ${state}`;
+      el.dataset.stepKey = key;
+      el.dataset.step = name;
+      el.innerHTML = `<h3>${esc(name.replaceAll('_',' '))}</h3><div class="detail">${detail}</div>`;
+      parent.appendChild(el);
+      return el;
+    }
+
+    function resetRun(label, campaign=false) {
+      createRun(label, campaign ? 'campaign' : 'upsell');
+      $('budget').hidden = !campaign;
+      if (campaign) $('budget-bar').style.width = '0%';
+    }
+
+    function finishRun(data) {
+      if (activeRun) activeRun.done = true;
+      $('run-status').textContent = data?.status || 'complete';
+      $('run-status').className = 'status '+(data?.status==='error'?'bad':'ok');
+      refreshMetrics();
+    }
+
+    function campaignScope(run, cohortId) { return `${run.id}:${cohortId}`; }
+    function memberScope(run, cohortId, memberId) { return `${campaignScope(run, cohortId)}:${memberId}`; }
+
+    function updateCohortSummary(cohort) {
+      const reserved = (cohort.reservedPaise / 100).toLocaleString();
+      cohort.summary.textContent = `${cohort.id} — ${cohort.memberCount} members, ${cohort.approved} approved, ${cohort.rejected} rejected, ₹${reserved} reserved`;
+    }
+
+    function ensureCohort(run, data) {
+      const cohortId = String(data.cohort_id);
+      let cohort = run.cohorts.get(cohortId);
+      if (cohort) return cohort;
+      const details = document.createElement('details');
+      details.className = 'cohort-block';
+      details.open = true;
+      const summary = document.createElement('summary');
+      const memberIds = Array.isArray(data.member_ids) ? data.member_ids : [];
+      summary.textContent = `${cohortId} — ${data.member_count ?? memberIds.length} members, 0 approved, 0 rejected, ₹0 reserved`;
+      details.appendChild(summary);
+      const body = document.createElement('div');
+      body.className = 'cohort-body';
+      const cohortSteps = document.createElement('div');
+      body.appendChild(cohortSteps);
+      const members = document.createElement('div');
+      body.appendChild(members);
+      details.appendChild(body);
+      run.block.appendChild(details);
+      cohort = { id: cohortId, memberCount: data.member_count ?? memberIds.length, memberIds, details, summary, cohortSteps, members, approved: 0, rejected: 0, reservedPaise: 0, memberMap: new Map(), nextMemberIndex: 0 };
+      run.cohorts.set(cohortId, cohort);
+      addStep(campaignScope(run, cohortId), 'cohort_formed', 'complete', `${cohort.memberCount} members<br><span class="muted">${esc(JSON.stringify(data.filter))}</span>`, cohort.cohortSteps);
+      for (const memberId of memberIds) ensureMember(run, cohort, memberId);
+      return cohort;
+    }
+
+    function ensureMember(run, cohort, memberId) {
+      if (memberId == null || memberId === '') return null;
+      const id = String(memberId);
+      let member = cohort.memberMap.get(id);
+      if (member) return member;
+      const details = document.createElement('details');
+      details.className = 'member-block';
+      details.open = cohort.memberMap.size === 0;
+      const summary = document.createElement('summary');
+      summary.textContent = id;
+      details.appendChild(summary);
+      const body = document.createElement('div');
+      body.className = 'member-body';
+      details.appendChild(body);
+      cohort.members.appendChild(details);
+      member = { id, details, summary, body, verdict: null, reservedPaise: 0 };
+      cohort.memberMap.set(id, member);
+      return member;
+    }
+
+    function resolveMember(run, data) {
+      const cohortId = data?.cohort_id == null ? null : String(data.cohort_id);
+      if (!cohortId) return null;
+      const cohort = run.cohorts.get(cohortId);
+      if (!cohort) return null;
+      const explicit = data.member_id ?? data.customer_id;
+      if (explicit != null) {
+        const member = ensureMember(run, cohort, explicit);
+        run.activeMemberByCohort.set(cohortId, member.id);
+        return member;
+      }
+      const activeId = run.activeMemberByCohort.get(cohortId);
+      if (activeId != null) return ensureMember(run, cohort, activeId);
+      const nextId = cohort.memberIds[cohort.nextMemberIndex++];
+      if (nextId == null) return null;
+      const member = ensureMember(run, cohort, nextId);
+      run.activeMemberByCohort.set(cohortId, member.id);
+      return member;
+    }
+
+    function runContextForEvent(data) {
+      if (!activeRun) return null;
+      if (activeRun.kind !== 'campaign') return { run: activeRun, scope: activeRun.id, container: activeRun.root, member: null, cohort: null };
+      if (data?.scope === 'cohort') {
+        const cohort = data?.cohort_id != null ? activeRun.cohorts.get(String(data.cohort_id)) : null;
+        if (cohort) return { run: activeRun, scope: campaignScope(activeRun, cohort.id), container: cohort.cohortSteps, member: null, cohort };
+        return { run: activeRun, scope: activeRun.id, container: activeRun.root, member: null, cohort: null };
+      }
+      if (data?.scope === 'member') {
+        const member = resolveMember(activeRun, data);
+        if (!member) return null;
+        const cohort = activeRun.cohorts.get(String(data.cohort_id));
+        return { run: activeRun, scope: memberScope(activeRun, cohort.id, member.id), container: member.body, member, cohort };
+      }
+      const member = resolveMember(activeRun, data);
+      if (member) {
+        const cohort = activeRun.cohorts.get(String(data.cohort_id));
+        return { run: activeRun, scope: memberScope(activeRun, cohort.id, member.id), container: member.body, member, cohort };
+      }
+      const cohort = data?.cohort_id != null ? activeRun.cohorts.get(String(data.cohort_id)) : null;
+      if (cohort) return { run: activeRun, scope: campaignScope(activeRun, cohort.id), container: cohort.cohortSteps, member: null, cohort };
+      return { run: activeRun, scope: activeRun.id, container: activeRun.root, member: null, cohort: null };
+    }
+
+    function handleRunEvent(event, data) {
+      if(event==='done') return finishRun(data);
+      if(event==='cohort_formed') { if (activeRun?.kind === 'campaign') ensureCohort(activeRun, data); return; }
+      if (activeRun?.kind === 'campaign' && event === 'segmenter_started') { addStep(activeRun.id,'segmenter_started','active','',activeRun.root); return; }
+      if (activeRun?.kind === 'campaign' && event === 'strategist_call_started') { const c=ensureCohort(activeRun,data); addStep(campaignScope(activeRun,c.id),`strategist_${c.id}`,'active','',c.cohortSteps); return; }
+      if (activeRun?.kind === 'campaign' && event === 'strategist_response') { const c=ensureCohort(activeRun,data); addStep(campaignScope(activeRun,c.id),`strategist_${c.id}`,'complete',`<pre>${esc(JSON.stringify(data.raw_json,null,2))}</pre>`,c.cohortSteps); return; }
+      if (activeRun?.kind === 'campaign' && event === 'expansion_started') { const c=ensureCohort(activeRun,data); addStep(campaignScope(activeRun,c.id),`expansion_${c.id}`,'active','',c.cohortSteps); return; }
+      if (event === 'budget_updated') { $('budget-label').textContent=`reserved ₹${(data.reserved_paise/100).toLocaleString()} · remaining ₹${(data.remaining_paise/100).toLocaleString()}`; $('budget-bar').style.width=`${Math.min(100,data.reserved_paise/50000)}%`; return; }
+      const context = runContextForEvent(data);
+      if (!context) return;
+      const { run, scope, container, cohort, member } = context;
+      if(event==='error') { addStep(scope, data.stage||'error','failed',`<span class="status bad">${esc(data.message)}</span>`,container); return; }
+      if(event==='trigger_detection') { addStep(scope,'trigger_detection','complete',`seat ceiling=${data.seat_ceiling}, renewal=${data.renewal_window}`,container); return; }
+      if(event==='eligibility_check_started') { addStep(scope,'eligibility_check_started','active','',container); return; }
+      if(event==='eligibility_result') { addStep(scope,'eligibility_check_started',data.passed?'complete':'failed',`passed=${data.passed}<br>${esc(data.reason||'eligible')}<div class="card"><pre>${esc(JSON.stringify({allowed_options:data.allowed_options,discount_band:data.discount_band},null,2))}</pre></div>`,container); return; }
+      if(event==='prompt_built') { addStep(scope,'prompt_built','complete',`<details><summary>exact prompt</summary><pre>${esc(data.prompt_text)}</pre></details>`,container); return; }
+      if(event==='model_call_started') { addStep(scope,'model_call_started','active','',container); return; }
+      if(event==='model_response') { addStep(scope,'model_call_started','complete',`latency ${formatLatency(data.latency_ms)}`,container); addStep(scope,'model_response','complete',`<pre>${esc(JSON.stringify(data.raw_json,null,2))}</pre>`,container); return; }
+      if(event==='policy_check_started') { addStep(scope,'policy_check_started','active','',container); return; }
+      if(event==='policy_verdict') {
+        const rules=(data.rule_results||[]).map(r=>`<span class="rule ${r.passed?'':'fail'}" title="${esc(r.reason||'pass')}">${esc(r.rule_id)}</span>`).join('');
+        addStep(scope,'policy_check_started',data.approved?'complete':'failed',`<div class="rules">${rules}</div><div class="status ${data.approved?'ok':'bad'}">${data.approved?'approved':'rejected'}; fired: ${esc((data.rules_fired||[]).join(', ')||'none')}</div>`,container);
+        if (cohort && member) {
+          if (member.verdict === true) cohort.approved--;
+          if (member.verdict === false) cohort.rejected--;
+          member.verdict = Boolean(data.approved);
+          member.verdict ? cohort.approved++ : cohort.rejected++;
+          updateCohortSummary(cohort);
+        }
+        return;
+      }
+      if(event==='field_discard') { addStep(scope,'field_discard','complete',`<span class="status warn">model proposed ${esc(data.field)}=${esc(data.discarded_value)}, discarded by field guard</span>`,container,`field_discard:${++fieldDiscardSequence}`); return; }
+      if(event==='offer_stored') { addStep(scope,'offer_stored','complete',`<span class="status ok">${esc(data.offer_id)} · ${esc(data.price_paise)} paise</span>`,container); if (cohort && member && !member.reservedPaise) { member.reservedPaise = Number(data.price_paise || 0); cohort.reservedPaise += member.reservedPaise; updateCohortSummary(cohort); } return; }
+    }
+    function formatLatency(ms) { return ms == null ? 'pending' : ms < 1000 ? `${Math.round(ms)}ms` : `${(ms/1000).toFixed(1)}s`; }
+    async function postStream(url) { const response=await fetch(url,{method:'POST',headers:{'Accept':'text/event-stream'}}); if(!response.ok) throw new Error(`HTTP ${response.status}`); const reader=response.body.getReader(); const decoder=new TextDecoder(); let buffer=''; while(true) { const part=await reader.read(); if(part.done) break; buffer+=decoder.decode(part.value,{stream:true}); const chunks=buffer.split('\n\n'); buffer=chunks.pop(); for(const chunk of chunks) { let event='message', data=''; for(const line of chunk.split('\n')) { if(line.startsWith('event:')) event=line.slice(6).trim(); else if(line.startsWith('data:')) data+=line.slice(5).trim(); } if(data) handleRunEvent(event,JSON.parse(data)); } } }
+    function runUpsell(id) { selectedId=id; renderAccounts(); createRun(`upsell ${id}`, 'upsell', id); $('budget').hidden=true; postStream(`/api/run/upsell/${encodeURIComponent(id)}?bypass_cache=true`).catch(error=>{ addStep(activeRun?.id||'stream','stream','failed',`<span class="status bad">${esc(error.message)}</span>`,activeRun?.root||$('timeline')); $('run-status').textContent='stream failed'; $('run-status').className='status bad'; }); }
+    function runCampaign() { resetRun('campaign',true); postStream('/api/run/campaign').catch(error=>{ addStep(activeRun?.id||'stream','stream','failed',`<span class="status bad">${esc(error.message)}</span>`,activeRun?.root||$('timeline')); $('run-status').textContent='stream failed'; $('run-status').className='status bad'; }); }
+    function renderAudit(row) { const cls=row.event_type.includes('REJECT')||row.event_type.includes('FAILED')?'bad':row.event_type.includes('DISCARD')?'warn':''; const el=document.createElement('div'); el.className=`audit-item ${cls}`; el.innerHTML=`<div><span class="event">${esc(row.event_type)}</span> <span class="muted">#${row.seq}</span></div><div class="muted">${local(row.timestamp)} · ${esc(row.actor)} · ${esc(row.subject_id)}</div><div class="payload">${esc(String(row.payload_json).slice(0,180))}</div>`; $('audit').prepend(el); }
+    function connectAudit() { if(auditSource) auditSource.close(); auditSource=new EventSource(`/api/audit/stream?since_seq=${auditSeq}`); auditSource.addEventListener('audit_event',e=>{ const row=JSON.parse(e.data); auditSeq=Math.max(auditSeq,row.seq); renderAudit(row); refreshMetrics(); }); auditSource.onerror=()=>{auditSource.close(); setTimeout(connectAudit,1500);}; }
+    async function refreshMetrics() { try { const data=await fetch('/api/metrics').then(r=>r.json()); $('mm-proposals').textContent=data.total_proposals; $('mm-approved').textContent=data.total_approved; $('mm-paid').textContent=data.total_paid; const intact=data.hash_chain==='chain intact'; $('chain').textContent=`hash chain: ${data.hash_chain}`; $('chain').className=`chain ${intact?'':'bad'}`; } catch {} }
+    async function loadAccounts() { try { accounts=await fetch('/api/accounts').then(r=>r.json()); $('account-status').textContent='live'; $('account-status').className='status ok'; renderAccounts(); } catch(e) { $('account-status').textContent='error'; $('account-status').className='status bad'; } }
+    async function refreshOffers() {
+      try {
+        const response = await fetch(apiUrl('/api/offers'));
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        offers = await response.json();
+        $('offers-status').textContent = 'live';
+        $('offers-status').className = 'status ok';
+        renderOffers();
+      } catch (error) {
+        $('offers-status').textContent = 'error';
+        $('offers-status').className = 'status bad';
+      }
+    }
+    async function loadConfig() {
+      $('checkout-config').textContent = `Config · checkout POST: ${MERCHANT_BASE_URL}`;
+      try {
+        const response = await fetch(apiUrl('/api/config'));
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+        razorpayKeyId = data.razorpay_key_id || '';
+        $('checkout-config').textContent = `Config · checkout POST: ${MERCHANT_BASE_URL}${razorpayKeyId ? '' : ' · public key unavailable'}`;
+        return razorpayKeyId;
+      } catch (error) {
+        $('checkout-config').textContent = `Config · checkout POST: ${MERCHANT_BASE_URL} · unavailable`;
+        return '';
+      }
+    }
+    function loadRazorpayCheckout() {
+      if (window.Razorpay) return Promise.resolve();
+      if (razorpayScriptPromise) return razorpayScriptPromise;
+      razorpayScriptPromise = new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+        script.onload = () => window.Razorpay ? resolve() : reject(new Error('Razorpay Checkout did not load'));
+        script.onerror = () => reject(new Error('Could not load Razorpay Checkout.js'));
+        document.head.appendChild(script);
+      });
+      return razorpayScriptPromise;
+    }
+    async function acceptAndPay(offerId) {
+      if (pendingOffers.has(offerId)) return;
+      pendingOffers.add(offerId);
+      setOfferFeedback(offerId, 'Accepting offer and creating Razorpay order…', 'warn');
+      let accepted;
+      try {
+        const response = await fetch(apiUrl(`/offers/${encodeURIComponent(offerId)}/accept`), { method:'POST' });
+        const text = await response.text();
+        let body = {};
+        try { body = text ? JSON.parse(text) : {}; } catch { body = { detail: text }; }
+        if (!response.ok) throw new Error(`Accept failed (HTTP ${response.status}): ${body.detail || text}`);
+        accepted = body;
+        setOfferFeedback(offerId, `Order ${accepted.order_id} created · ₹${(accepted.amount_paise / 100).toFixed(2)} ${accepted.currency}`, 'ok');
+        await refreshOffers();
+        const key = razorpayKeyId || await loadConfig();
+        if (!key) throw new Error('Razorpay public key is unavailable');
+        await loadRazorpayCheckout();
+      } catch (error) {
+        pendingOffers.delete(offerId);
+        setOfferFeedback(offerId, error.message, 'bad');
+        await refreshOffers();
+        return;
+      }
+
+      let callbackAttempted = false;
+      const checkout = new window.Razorpay({
+        key: razorpayKeyId,
+        order_id: accepted.order_id,
+        amount: accepted.amount_paise,
+        currency: accepted.currency,
+        name: 'Merchant Service (Demo)',
+        description: offerId,
+        handler: async paymentResponse => {
+          callbackAttempted = true;
+          setOfferFeedback(offerId, 'Payment received; verifying callback…', 'warn');
+          try {
+            const callbackResponse = await fetch(apiUrl(`/offers/${encodeURIComponent(offerId)}/payment_callback`), {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                razorpay_payment_id: paymentResponse.razorpay_payment_id,
+                razorpay_order_id: paymentResponse.razorpay_order_id,
+                razorpay_signature: paymentResponse.razorpay_signature,
+                amount_paise: accepted.amount_paise,
+                currency: accepted.currency,
+              }),
+            });
+            const body = await callbackResponse.text();
+            if (!callbackResponse.ok) throw new Error(`Callback failed (HTTP ${callbackResponse.status}): ${body}`);
+            setOfferFeedback(offerId, `Payment verified · HTTP ${callbackResponse.status}: ${body}`, 'ok');
+            await refreshOffers();
+          } catch (error) {
+            setOfferFeedback(offerId, error.message, 'bad');
+            await refreshOffers();
+          } finally {
+            pendingOffers.delete(offerId);
+          }
+        },
+        modal: {
+          ondismiss: () => {
+            if (!callbackAttempted) setOfferFeedback(offerId, 'Checkout canceled; offer state was not changed by the dashboard.', 'warn');
+            pendingOffers.delete(offerId);
+          },
+        },
+      });
+      checkout.on('payment.failed', failure => {
+        callbackAttempted = true;
+        pendingOffers.delete(offerId);
+        const message = failure?.error?.description || failure?.error?.reason || 'Razorpay checkout failed';
+        setOfferFeedback(offerId, `Checkout failed: ${message}`, 'bad');
+      });
+      try {
+        checkout.open();
+      } catch (error) {
+        pendingOffers.delete(offerId);
+        setOfferFeedback(offerId, `Could not open checkout: ${error.message}`, 'bad');
+      }
+    }
+    async function tamperDemo() { $('tamper-log').innerHTML=''; $('tamper-dialog').showModal(); try { const response=await fetch('/api/audit/tamper_demo',{method:'POST',headers:{'Accept':'text/event-stream'}}); if(!response.ok) throw new Error(`HTTP ${response.status}`); const reader=response.body.getReader(); const decoder=new TextDecoder(); let buffer=''; while(true) { const part=await reader.read(); if(part.done) break; buffer+=decoder.decode(part.value,{stream:true}); const chunks=buffer.split('\n\n'); buffer=chunks.pop(); for(const chunk of chunks) { let event='message', data=''; for(const line of chunk.split('\n')) { if(line.startsWith('event:')) event=line.slice(6).trim(); else if(line.startsWith('data:')) data+=line.slice(5).trim(); } if(data) $('tamper-log').innerHTML += `<div>${esc(event)}: <pre>${esc(JSON.stringify(JSON.parse(data),null,2))}</pre></div>`; } } } catch(error) { $('tamper-log').innerHTML += `<div class="status bad">${esc(error.message)}</div>`; } }
+    $('campaign-btn').onclick=runCampaign; $('tamper-btn').onclick=tamperDemo; $('clear-timeline').onclick=()=>{ $('timeline').innerHTML='<div class="empty">Live pipeline events will appear here.</div>'; activeRun=null; }; loadAccounts(); loadConfig(); refreshOffers(); setInterval(refreshOffers, 3000); connectAudit(); refreshMetrics();
+  </script>
+</body>
+</html>

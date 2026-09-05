@@ -1,0 +1,12 @@
+{
+  "response": {
+    "campaign_id": "growth_expansion_2026",
+    "customer_id": "acct-046",
+    "offer_type": "seat_expansion",
+    "option_id": "seat_expansion:enterprise",
+    "proposed_discount": "0.20",
+    "proposed_seats": 100,
+    "reason": "Expanding your seat capacity to 100 on the Enterprise tier ensures your growing team continues to enjoy seamless collaboration with your existing 20% discount.",
+    "target_tier": "enterprise"
+  }
+}

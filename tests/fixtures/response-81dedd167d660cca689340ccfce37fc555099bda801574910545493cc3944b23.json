@@ -1,0 +1,13 @@
+{
+  "response": {
+    "campaign_id": "growth_pro_upgrade",
+    "customer_id": "acct-003",
+    "offer_type": "upgrade",
+    "option_id": "upgrade:pro",
+    "proposed_discount": "0.00",
+    "proposed_seats": 9,
+    "reason": "Upgrade to Pro tier to support your growing team and advanced features.",
+    "target_addon": "",
+    "target_tier": "pro"
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "sellers": [
+    {"id": "seller_brew", "name": "Brew & Bean Co.", "catalog_url": "https://brew.example/catalog"},
+    {"id": "seller_home", "name": "HomeCraft India", "catalog_url": "https://homecraft.example/catalog"},
+    {"id": "seller_daily", "name": "Daily Grind Market", "catalog_url": "https://dailygrind.example/catalog"}
+  ],
+  "products": [
+    {"id":"prod_brew_arabica","seller_id":"seller_brew","sku":"COFFEE-ARABICA-250","title":"Single-origin Arabica Beans 250g","description":"Medium roast beans from Chikmagalur.","price_minor":69900,"currency":"INR","gst_rate_bps":500,"max_per_order":5,"returnable":false,"return_window_days":0,"on_hand":24},
+    {"id":"prod_brew_grinder","seller_id":"seller_brew","sku":"GRINDER-BASIC","title":"Burr Coffee Grinder","description":"Compact stainless-steel burr grinder.","price_minor":249900,"currency":"INR","gst_rate_bps":1800,"max_per_order":2,"returnable":true,"return_window_days":7,"on_hand":8},
+    {"id":"prod_home_kettle","seller_id":"seller_home","sku":"KETTLE-15L","title":"Electric Kettle 1.5L","description":"Fast-boil kettle with auto shut-off.","price_minor":159900,"currency":"INR","gst_rate_bps":1800,"max_per_order":3,"returnable":true,"return_window_days":10,"on_hand":12},
+    {"id":"prod_home_arabica","seller_id":"seller_home","sku":"COFFEE-ARABICA-250","title":"Estate Arabica Coffee 250g","description":"Freshly roasted estate-grown Arabica.","price_minor":74900,"currency":"INR","gst_rate_bps":500,"max_per_order":6,"returnable":false,"return_window_days":0,"on_hand":30},
+    {"id":"prod_daily_french","seller_id":"seller_daily","sku":"COFFEE-FRENCH-250","title":"French Roast Coffee 250g","description":"Bold dark roast for filter or espresso.","price_minor":59900,"currency":"INR","gst_rate_bps":500,"max_per_order":8,"returnable":false,"return_window_days":0,"on_hand":40},
+    {"id":"prod_daily_pour","seller_id":"seller_daily","sku":"POUROVER-02","title":"Ceramic Pour-over Brewer","description":"Handmade ceramic brewer, size 02.","price_minor":89900,"currency":"INR","gst_rate_bps":1200,"max_per_order":4,"returnable":true,"return_window_days":7,"on_hand":1},
+    {"id":"prod_daily_scale","seller_id":"seller_daily","sku":"SCALE-COFFEE","title":"Digital Coffee Scale","description":"Gram-accurate scale with timer.","price_minor":129900,"currency":"INR","gst_rate_bps":1800,"max_per_order":2,"returnable":true,"return_window_days":10,"on_hand":6}
+  ]
+}

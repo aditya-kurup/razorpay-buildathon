@@ -1,0 +1,8 @@
+{
+  "response": {
+    "option_id": "seat_expansion:enterprise",
+    "proposed_discount": "0.20",
+    "proposed_seats": 80,
+    "reason": "Based on your steady team growth and high utilization of workspace features, we recommend expanding your seat capacity to 80 seats to ensure uninterrupted collaboration for your growing team while maintaining your preferred enterprise discount rate."
+  }
+}

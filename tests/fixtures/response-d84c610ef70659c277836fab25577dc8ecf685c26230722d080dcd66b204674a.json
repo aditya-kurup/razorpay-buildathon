@@ -1,0 +1,8 @@
+{
+  "response": {
+    "option_id": "upgrade:enterprise",
+    "proposed_discount": "0.10",
+    "proposed_seats": 44,
+    "reason": "Upgrade to Enterprise to unlock advanced workspace controls and support your growing team size with a preferred promotional discount."
+  }
+}

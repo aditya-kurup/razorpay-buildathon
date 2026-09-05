@@ -1,0 +1,13 @@
+{
+  "response": {
+    "campaign_id": "renewal_window",
+    "customer_id": "acct-029",
+    "offer_type": "seat_expansion",
+    "option_id": "seat_expansion:enterprise",
+    "proposed_discount": "0.0",
+    "proposed_seats": 106,
+    "reason": "Thank you for being a valued Enterprise partner. We are pleased to offer you this expansion package to support your growing team.",
+    "target_addon": "",
+    "target_tier": "enterprise"
+  }
+}
