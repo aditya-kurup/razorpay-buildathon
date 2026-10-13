@@ -1,0 +1,13 @@
+name: growth-agent-ci
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.11'}
+      - run: pip install pytest ruff aws-cdk-lib constructs fastapi pydantic
+      - run: pytest -q
+      - run: ruff check agent policy reservation payments approval_app.py
+      - run: cdk synth -c secret_name=growth-agent
