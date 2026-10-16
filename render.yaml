@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: razorpay-growth-agent
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn merchant.api:app --host 0.0.0.0 --port $PORT --workers 1
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.11
+      - key: PUBLIC_DEMO
+        value: "true"

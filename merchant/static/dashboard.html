@@ -56,6 +56,7 @@
   </style>
 </head>
 <body>
+  <div id="demo-banner" hidden style="padding:10px 16px;background:#182331;color:#ffc45c">Public portfolio demo · Simulated proposals, real server-side policy checks and audit trail · Checkout disabled · Synthetic data resets on restart. <a href="https://github.com/aditya-kurup/razorpay-buildathon" style="color:#58b6ff">Source code</a></div>
   <main class="app">
     <section class="column">
       <header>
@@ -86,7 +87,7 @@
     const MERCHANT_BASE_URL = window.location.origin;
     const $ = id => document.getElementById(id);
     let accounts = [], offers = [], selectedId = null, auditSource = null, auditSeq = 0;
-    let razorpayKeyId = '', razorpayScriptPromise = null;
+    let razorpayKeyId = '', razorpayScriptPromise = null, publicDemo = false;
     const offerFeedback = new Map(), pendingOffers = new Set();
     const steps = ['trigger_detection','eligibility_check_started','eligibility_result','prompt_built','model_call_started','model_response','policy_check_started','policy_verdict','offer_stored'];
     function esc(value) { return String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c])); }
@@ -120,7 +121,7 @@
       $('offers').innerHTML = offers.map(offer => {
         const state = String(offer.state || '');
         const feedback = offerFeedback.get(offer.offer_id);
-        const button = state === 'RESERVED'
+        const button = state === 'RESERVED' && !publicDemo
           ? `<button ${pendingOffers.has(offer.offer_id) ? 'disabled' : ''} onclick="event.stopPropagation(); acceptAndPay('${esc(offer.offer_id)}')">Simulate customer accept &amp; pay (demo)</button>`
           : '';
         return `<article class="offer-item">
@@ -348,7 +349,16 @@
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const data = await response.json();
         razorpayKeyId = data.razorpay_key_id || '';
+        publicDemo = Boolean(data.public_demo);
+        if (publicDemo) {
+          $('demo-banner').hidden = false;
+          document.querySelector('.app').style.height = 'calc(100vh - 60px)';
+          $('tamper-btn').disabled = true;
+          $('tamper-btn').title = 'Audit mutation is disabled in the public demo';
+          renderOffers();
+        }
         $('checkout-config').textContent = `Config · checkout POST: ${MERCHANT_BASE_URL}${razorpayKeyId ? '' : ' · public key unavailable'}`;
+        if (publicDemo) $('checkout-config').textContent = 'Portfolio demo · Checkout disabled';
         return razorpayKeyId;
       } catch (error) {
         $('checkout-config').textContent = `Config · checkout POST: ${MERCHANT_BASE_URL} · unavailable`;
