@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import Any, Callable, Iterator, Mapping
 
 from fastapi import FastAPI, HTTPException, Query, Request, Response
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.responses import FileResponse, RedirectResponse, StreamingResponse
 from pydantic import BaseModel
 
 try:
@@ -56,6 +56,7 @@ from .audit_events import AuditEventLogger, verify_audit_chain  # noqa: E402
 LOGGER = logging.getLogger(__name__)
 
 app = FastAPI(title="Agent-readable commerce merchant service")
+PUBLIC_DEMO = os.getenv("PUBLIC_DEMO", "").lower() == "true"
 _offer_store = MerchantOfferStore()
 _payment_gateway: Any = None
 _reservation_release: Callable[[MerchantOffer, str], None] | None = None
@@ -142,6 +143,11 @@ def health():
     return {"ok": True}
 
 
+@app.get("/", include_in_schema=False)
+def home():
+    return RedirectResponse("/dashboard")
+
+
 def _env_value(name: str) -> str:
     value = os.getenv(name)
     if value:
@@ -161,8 +167,8 @@ def _env_value(name: str) -> str:
 
 
 @app.get("/api/config")
-def dashboard_config() -> dict[str, str]:
-    return {"razorpay_key_id": _env_value("RAZORPAY_KEY_ID")}
+def dashboard_config() -> dict[str, Any]:
+    return {"razorpay_key_id": "" if PUBLIC_DEMO else _env_value("RAZORPAY_KEY_ID"), "public_demo": PUBLIC_DEMO}
 
 
 @app.get("/catalog")
@@ -185,6 +191,8 @@ def commit_stub():
 
 @app.post("/offers/{offer_id}/accept")
 def accept_offer(offer_id: str) -> dict[str, Any]:
+    if PUBLIC_DEMO:
+        raise HTTPException(403, "Checkout is disabled in the public portfolio demo")
     now = _now()
     try:
         offer, expired = _offer_store.accept(offer_id, now)
@@ -227,6 +235,8 @@ def accept_offer(offer_id: str) -> dict[str, Any]:
 
 @app.post("/offers/{offer_id}/payment_callback")
 def payment_callback(offer_id: str, body: dict[str, Any]) -> dict[str, Any]:
+    if PUBLIC_DEMO:
+        raise HTTPException(403, "Payments are disabled in the public portfolio demo")
     now = _now()
     try:
         offer = _offer_store.get(offer_id)
@@ -630,7 +640,10 @@ class _TracingModel:
         return response
 
 
-def _new_model() -> GeminiModelClient:
+def _new_model() -> Any:
+    if PUBLIC_DEMO:
+        from agent.demo_model import DemoModelClient
+        return DemoModelClient()
     return GeminiModelClient(ModelClientConfig())
 
 
@@ -1088,6 +1101,8 @@ def audit_stream(since_seq: int = Query(0, ge=0)) -> StreamingResponse:
 
 @app.post("/api/audit/tamper_demo")
 def tamper_demo() -> StreamingResponse:
+    if PUBLIC_DEMO:
+        raise HTTPException(403, "Audit mutation is disabled in the public portfolio demo")
     def iterator() -> Iterator[str]:
         conn = connect()
         step = "selecting middle audit row"

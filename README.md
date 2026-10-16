@@ -319,3 +319,15 @@ requirements.txt       Pinned runtime dependency set
 - The dashboard's tamper demo intentionally exercises audit-chain break and
   repair behavior; it should not be exposed as an administrative API in a
   production deployment.
+
+## Free public portfolio deployment
+
+`render.yaml` configures a free Render Python service. Set `PUBLIC_DEMO=true`
+for a credential-free public dashboard: proposals are explicitly simulated, while
+eligibility, policy checks, campaign reservations, offer storage, and the audit
+chain use the real application code. Payment and audit mutation endpoints are
+disabled. Do not upload `.env` or API credentials for this public mode.
+
+The root URL redirects to `/dashboard`. Free Render services sleep when idle;
+the first request can take about a minute. SQLite state resets on service restarts
+or redeploys, and visitors share the synthetic demo state. Run one worker.
